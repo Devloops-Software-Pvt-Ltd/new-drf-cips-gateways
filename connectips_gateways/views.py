@@ -35,38 +35,26 @@ class ConnectIpsPaymentViewSet(viewsets.ModelViewSet):
                 {"message": "CipsPayment already configured."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
+    
         # Validate PFX file
         file = request.FILES.get("creditor_pfx_file")
         if not file:
             return Response({"error": "No file uploaded"}, status=400)
-
+    
         if not file.name.lower().endswith('.pfx'):
             return Response({"error": "Only .pfx files are allowed"}, status=400)
-
-        # Validate and save serialized CipsPayment data
-        serializer = self.serializer_class(data=request.data)
+    
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-                instance = serializer.save(commit=False)
-                instance.creditor_pfx_file = file
-                instance.save()
-
-
-            # file_path = os.path.join(settings.MEDIA_ROOT)
-
-            # with open(file_path, 'wb') as f:
-            #     for chunk in file.chunks():
-            #         f.write(chunk)
-
-            # instance.creditor_pfx_file = file_path
-            # print(file_path)
-            # instance.save()
-
-        return Response(
-            {"message": "Created successfully", "data": serializer.data},
-            status=status.HTTP_201_CREATED
-        )
-
+            instance = serializer.save()
+            instance.creditor_pfx_file = file
+            instance.save()
+    
+            return Response(
+                {"message": "Created successfully", "data": serializer.data},
+                status=status.HTTP_201_CREATED
+            )
+    
         return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
