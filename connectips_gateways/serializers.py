@@ -24,4 +24,9 @@ class ConnectIpsPaymentSerializer(serializers.ModelSerializer):
                 
             }
         return data
+    
+    def validate_creditor_pfx_file(self, value):
+        if value == '' or value is None:
+            return self.instance.creditor_pfx_file  # keep the existing file
+        return value
         
