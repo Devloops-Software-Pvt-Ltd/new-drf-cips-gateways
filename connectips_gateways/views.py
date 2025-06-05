@@ -58,24 +58,36 @@ class ConnectIpsPaymentViewSet(viewsets.ModelViewSet):
         return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
+        # Force partial update, so missing fields are ignored
+        partial = kwargs.pop('partial', True)
         instance = self.get_object()
 
-        file = request.FILES.get("creditor_pfx_file")
-        if file:
+        file = request.FILES.get('creditor_pfx_file')
+        if file is not None:
             if not file.name.lower().endswith('.pfx'):
-                return Response({"error": "Only .pfx files are allowed"}, status=400)
-            instance.creditor_pfx_file = file  # assign new file (Django handles replacing the old one)
+                return Response(
+                    {"error": "Only .pfx files are allowed"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if instance.creditor_pfx_file:
+                instance.creditor_pfx_file.delete(save=False)
+            instance.creditor_pfx_file = file
 
-        serializer = self.serializer_class(instance, data=request.data, partial=partial)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(
-                {"message": "Updated successfully", "data": serializer.data},
-                status=status.HTTP_200_OK
-            )
+        data = request.data.copy()
+        if file is None:
+            # Remove file field to avoid clearing it
+            data.pop('creditor_pfx_file', None)
 
-        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(instance, data=data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        return Response(
+            {"message": "Updated successfully", "data": serializer.data},
+            status=status.HTTP_200_OK
+        )
+
+
 
 
     def partial_update(self, request, pk=None):

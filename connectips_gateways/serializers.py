@@ -24,3 +24,4 @@ class ConnectIpsPaymentSerializer(serializers.ModelSerializer):
                 
             }
         return data
+        
