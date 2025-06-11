@@ -58,10 +58,9 @@ class ConnectIpsPaymentViewSet(viewsets.ModelViewSet):
         return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
-        # Force partial update, so missing fields are ignored
         partial = kwargs.pop('partial', True)
         instance = self.get_object()
-
+        
         file = request.FILES.get('creditor_pfx_file')
         if file is not None:
             if not file.name.lower().endswith('.pfx'):
@@ -69,25 +68,18 @@ class ConnectIpsPaymentViewSet(viewsets.ModelViewSet):
                     {"error": "Only .pfx files are allowed"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+            # Delete old file before serializer processes the new one
             if instance.creditor_pfx_file:
                 instance.creditor_pfx_file.delete(save=False)
-            instance.creditor_pfx_file = file
-
-        data = request.data.copy()
-        if file is None:
-            # Remove file field to avoid clearing it
-            data.pop('creditor_pfx_file', None)
-
-        serializer = self.get_serializer(instance, data=data, partial=partial)
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
-
+        
         return Response(
             {"message": "Updated successfully", "data": serializer.data},
             status=status.HTTP_200_OK
         )
-
-
 
 
     def partial_update(self, request, pk=None):
